@@ -1,5 +1,12 @@
-#ifndef __ASM_PAGE_H
-#define __ASM_PAGE_H
+#ifndef __PAGE_H__
+#define __PAGE_H__
+
+#include <types.h>
+
+#ifndef __ASSEMBLY__
+
+extern uint64_t physical_address_offset;
+#endif
 
 #define CONFIG_ARM64_PGTABLE_LEVELS 	3
 
