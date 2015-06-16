@@ -437,12 +437,6 @@ reset:
 	ldr	x2, =stage2		/* Virtual address of stage2 */
 
 	/* Enable MMU / SCTLR */
-#if 0
-	mrs	x1, SCTLR_EL1	/* SCTLR */
-	orr	x1, x1, #1 << 12	/* enable icache */
-	orr	x1, x1, #1 << 2		/* enable dcache */
-	orr	x1, x1, #1 			/* enable MMU */
-#endif
 	msr	SCTLR_EL1, x0	/* SCTLR */
 	isb
 
@@ -716,61 +710,18 @@ crval:
  *    pc -> somewhere in newly-mapped virtual code section
  */
 stage2:
-	/* Invalidate TLB */
-#if 0
-	TLBI ALLE1	/* Invalidate all EL1 TLB entries */
-	isb
-
-	/* The new mapping has now taken effect:
-	 * x7 -> page_dir
-	 *
-	 * Fill in the whole top-level translation table (at page_dir).
-	 * Populate the whole pagedir with 1MB section descriptors.
-	 */
-
-	mov	x1, x7			/* x1 -> first section entry */
-	add	x3, x1, #4*4*1024	/* limit (4 GB address space, 4 byte entries) */
-	orr	x0, x8, x9		/* x0 = entry mapping section zero to start of physical RAM */
-1:
-	str	x0, [x1],#4		/* write the section entry */
-	add	x0, x0, #1 << 20 	/* next physical page (wraps) */
-	cmp	x1, x3
-	bne	1b
-
-	/* Invalidate TLB */
-	dsb sy
-	TLBI ALLE1	/* Invalidate all EL1 TLB entries */
-	isb
-
-#endif
-
 	/* Set VBAR -> exception_vector_table 
 	 * SCTLR.V = 0 
 	 */
 	adr	x0, exception_vector_table
 	msr	VBAR_EL1, x0
 
-	/* Enable hardware floating point:
-	 * 1. Access to CP10 and CP11 must be enabled in the Coprocessor Access
-	 *    Control Register (CP15.CACR):
-	 */
-	/* TBD: Not needed in arm64? */
-#if 0
-	mrs	p15, 0, x1, c1, c0, 2		/* CACR */
-	orr	x1, x1, #(3 << 20) + (3 << 22)	/* full access for CP10 & CP11 */
-	msr	p15, 0, x1, c1, c0, 2
-	/* 2. The EN bit in the FPEXC register must be set: */
-	mrs	x0, FPEXC
-	orr	x0, x0, #1<<30		/* EN (enable) */
-	vmsr	FPEXC, x0
-#endif
-
 	/* Initialise 16 KB stack */
 	ldr x0, =_boot_stack_end
 	mov	sp, x0
 
-	sub	x0, x2, x9		/* x0 -> device tree (virtual address) */
-	mov	x1, x9			/* x1 = physical_address_offset */
+	sub	x0, x2, x28		/* x0 -> device tree (virtual address) */
+	mov	x1, x28			/* x1 = physical_address_offset */
 
 	b	arch_init
 
