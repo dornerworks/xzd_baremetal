@@ -9,6 +9,8 @@ ARCH_SRCS := $(sort $(wildcard *.c))
 # The objects built from the sources.
 ARCH_OBJS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(ARCH_SRCS))
 
+ARCH_OBJS += hypercall.o
+
 all: $(OBJ_DIR)/$(ARCH_LIB)
 
 # $(HEAD_ARCH_OBJ) is only build here, needed on linking
