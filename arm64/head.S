@@ -211,13 +211,13 @@
 
 .section .text
 
-.globl _start
-_start:
+.globl _stext
+_stext:
 	/* zImage header */
 	add     x13, x18, #0x16
     b       reset
-    .quad   _start               // Image load offset from start of RAM, little-endian
-	.quad   _end - _start                 // Effective size of kernel image, little-endian
+    .quad   0x80000               // Image load offset from start of RAM, little-endian
+	.quad   _end - _stext                 // Effective size of kernel image, little-endian
 	.quad   0                // Informative flags, little-endian
 	.quad   0                               // reserved
 	.quad   0                               // reserved
@@ -227,18 +227,115 @@ _start:
 	.byte   0x4d
 	.byte   0x64
 	/* end of zImage header
+	.long	pe_header - _stext		// Offset to the PE header.
+	.align 3
+pe_header:
+	.ascii	"PE"
+	.short 	0
+coff_header:
+	.short	0xaa64				// AArch64
+	.short	2				// nr_sections
+	.long	0 				// TimeDateStamp
+	.long	0				// PointerToSymbolTable
+	.long	1				// NumberOfSymbols
+	.short	section_table - optional_header	// SizeOfOptionalHeader
+	.short	0x206				// Characteristics.
+						// IMAGE_FILE_DEBUG_STRIPPED |
+						// IMAGE_FILE_EXECUTABLE_IMAGE |
+						// IMAGE_FILE_LINE_NUMS_STRIPPED
+optional_header:
+	.short	0x20b				// PE32+ format
+	.byte	0x02				// MajorLinkerVersion
+	.byte	0x14				// MinorLinkerVersion
+	.long	_end - reset			// SizeOfCode
+	.long	0				// SizeOfInitializedData
+	.long	0				// SizeOfUninitializedData
+	.long	efi_stub_entry - _stext	// AddressOfEntryPoint
+	.long	reset - _stext		// BaseOfCode
+
+extra_header_fields:
+	.quad	0				// ImageBase
+	.long	0x20				// SectionAlignment
+	.long	0x8				// FileAlignment
+	.short	0				// MajorOperatingSystemVersion
+	.short	0				// MinorOperatingSystemVersion
+	.short	0				// MajorImageVersion
+	.short	0				// MinorImageVersion
+	.short	0				// MajorSubsystemVersion
+	.short	0				// MinorSubsystemVersion
+	.long	0				// Win32VersionValue
+
+	.long	_end - _stext			// SizeOfImage
+
+	// Everything before the kernel image is considered part of the header
+	.long	reset - _stext		// SizeOfHeaders
+	.long	0				// CheckSum
+	.short	0xa				// Subsystem (EFI application)
+	.short	0				// DllCharacteristics
+	.quad	0				// SizeOfStackReserve
+	.quad	0				// SizeOfStackCommit
+	.quad	0				// SizeOfHeapReserve
+	.quad	0				// SizeOfHeapCommit
+	.long	0				// LoaderFlags
+	.long	0x6				// NumberOfRvaAndSizes
+
+	.quad	0				// ExportTable
+	.quad	0				// ImportTable
+	.quad	0				// ResourceTable
+	.quad	0				// ExceptionTable
+	.quad	0				// CertificationTable
+	.quad	0				// BaseRelocationTable
+
+	// Section table
+section_table:
+
+	/*
+	 * The EFI application loader requires a relocation section
+	 * because EFI applications must be relocatable.  This is a
+	 * dummy section as far as we are concerned.
+	 */
+	.ascii	".reloc"
+	.byte	0
+	.byte	0			// end of 0 padding of section name
+	.long	0
+	.long	0
+	.long	0			// SizeOfRawData
+	.long	0			// PointerToRawData
+	.long	0			// PointerToRelocations
+	.long	0			// PointerToLineNumbers
+	.short	0			// NumberOfRelocations
+	.short	0			// NumberOfLineNumbers
+	.long	0x42100040		// Characteristics (section flags)
+
+
+	.ascii	".text"
+	.byte	0
+	.byte	0
+	.byte	0        		// end of 0 padding of section name
+	.long	_end - reset		// VirtualSize
+	.long	reset - _stext	// VirtualAddress
+	.long	_edata - reset		// SizeOfRawData
+	.long	reset - _stext	// PointerToRawData
+
+	.long	0		// PointerToRelocations (0 for executables)
+	.long	0		// PointerToLineNumbers (0 for executables)
+	.short	0		// NumberOfRelocations  (0 for executables)
+	.short	0		// NumberOfLineNumbers  (0 for executables)
+	.long	0xe0500020	// Characteristics (section flags)
+	.align 5
+
 
 /* Called at boot time. Sets up MMU, exception vectors and stack, and then calls C arch_init() function.
  * => x2 -> DTB
  * <= never returns
- * Note: this boot code needs to be within the first (1MB - ZIMAGE_KERNEL_OFFSET) of _start.
+ * Note: this boot code needs to be within the first (1MB - ZIMAGE_KERNEL_OFFSET) of _stext.
  */
 reset:
-	/* Problem: the C code wants to be at a known address (_start), but Xen might
+	/* Problem: the C code wants to be at a known address (_stext), but Xen might
 	 * load us anywhere. We initialise the MMU (mapping virtual to physical @ addresses)
 	 * so everything ends up where the code expects it to be.
 	 *
-	 * We calculate the offet between where the linker thought _start would be and where
+	 * We calculate the offet between where the linker thought _stext would be and where
 	 * it actually is and initialise the page tables to have that offset for every page.
 	 *
 	 * When we turn on the MMU, we're still executing at the old address. We don't want
@@ -250,8 +347,8 @@ reset:
 	 * 4. remap all the other pages with the calculated offset
 	 */
 
-	adr	x1, _start		/* x1 = physical address of _start 0x40408000 */
-	ldr	x3, =_start		/* x3 = (desired) virtual address of _start 0x408000 */
+	adr	x1, _stext		/* x1 = physical address of _stext 0x40408000 */
+	ldr	x3, =_stext		/* x3 = (desired) virtual address of _stext 0x408000 */
 	sub 	x9, x1, x3		/* x9 = (physical - virtual) offset 0x40000000 */
 	mov x28, x9
 
@@ -295,7 +392,7 @@ reset:
 	 * addresses. It's OK if they're the same.
 	 */
 
-	adr	x0, _start
+	adr	x0, _stext
 
 	lsr	x12, x0, #29
 	and	x12, x12, #((1<<19)-1)	// table index
@@ -309,7 +406,7 @@ reset:
 	and	x5, x0, #((1<<13)-1)
 	str	x3, [x1, x5, lsl #3]	/* map current section to this code too */
 
-	ldr	x4, =_start		/* x4 = desired virtual address of this section */
+	ldr	x4, =_stext		/* x4 = desired virtual address of this section */
 
 	lsr	x12, x4, #29
 	and	x12, x12, #((1<<19)-1)	// table index
@@ -892,3 +989,10 @@ arm_start_thread:
 	/* x1 -> thread's main function */
 	/* ldr	x30, =exit_thread */
 	ret	x1
+
+efi_stub_entry:
+	/*
+	 * Create a stack frame to save FP/LR with extra space
+	 * for image_addr variable passed to efi_entry().
+	 */
+	stp	x29, x30, [sp, #-32]!

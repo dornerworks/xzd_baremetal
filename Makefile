@@ -30,7 +30,7 @@ LDFLAGS_FINAL := -T $(TARGET_ARCH_DIR)/xzd_bare.lds
 
 # Prefix for global API names. All other symbols are localised before
 # linking with EXTRA_OBJS.
-GLOBAL_PREFIX := xenos_
+# GLOBAL_PREFIX := xenos_
 EXTRA_OBJS =
 
 TARGET := xzd_bare
@@ -113,13 +113,9 @@ endif
 
 $(OBJ_DIR)/$(TARGET): $(OBJS) $(APP_O) arch_lib
 	$(LD) -r $(LDFLAGS) $(HEAD_OBJ) $(APP_O) $(OBJS) $(LDARCHLIB) $(LDLIBS) -o $@.o
-	$(OBJCOPY) -w -G $(GLOBAL_PREFIX)* -G _start $@.o $@.o
+	$(OBJCOPY) -w -G _text $@.o $@.o
 	$(LD) $(LDFLAGS) $(LDFLAGS_FINAL) $@.o $(EXTRA_OBJS) -o $@
-ifeq ($(TARGET_ARCH_FAM),arm)
 	$(OBJCOPY) -O binary $@ $@.img
-else
-	gzip -f -9 -c $@ >$@.gz
-endif
 
 .PHONY: clean arch_clean
 

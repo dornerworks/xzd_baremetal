@@ -1,17 +1,19 @@
 OUTPUT_ARCH(aarch64)
-ENTRY(_start)
+ENTRY(_text)
 SECTIONS
 {
   /* Note: we currently assume that Xen will load the kernel image
    * at start-of-RAM + 0x8000. We use this initial 32 KB for the stack
    * and translation tables.
    */
-   _boot_stack   = 0x400000;  /* 16 KB boot stack */
-  _boot_stack_end = 0x404000;
-  _page_dir      = 0x404000;  /* 16 KB translation table */
-  .		 = 0x408000;
+   _boot_stack   = 0xffffffc000000000;  /* 16 KB boot stack */
+  _boot_stack_end = 0xffffffc000040000;
+  _page_dir      = 0xffffffc000040000;  /* 16 KB translation table */
+  /* .		 = 0x408000; */
+  .    = 0xffffffc000080000;
   _text = .;			/* Text and read-only data */
   .text : {
+  _stext = .;   /* Text and read-only data  */
 	*(.text)
 	*(.gnu.warning)
 	} = 0x9090
