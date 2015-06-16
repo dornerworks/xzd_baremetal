@@ -207,8 +207,6 @@
 /* PTWs cacheable, inner/outer WBWA */
 #define TCR_CACHE_FLAGS	TCR_IRGN_WBWA | TCR_ORGN_WBWA
 
-
-
 .section .text
 
 .globl _stext
@@ -227,103 +225,6 @@ _stext:
 	.byte   0x4d
 	.byte   0x64
 	/* end of zImage header
-	.long	pe_header - _stext		// Offset to the PE header.
-	.align 3
-pe_header:
-	.ascii	"PE"
-	.short 	0
-coff_header:
-	.short	0xaa64				// AArch64
-	.short	2				// nr_sections
-	.long	0 				// TimeDateStamp
-	.long	0				// PointerToSymbolTable
-	.long	1				// NumberOfSymbols
-	.short	section_table - optional_header	// SizeOfOptionalHeader
-	.short	0x206				// Characteristics.
-						// IMAGE_FILE_DEBUG_STRIPPED |
-						// IMAGE_FILE_EXECUTABLE_IMAGE |
-						// IMAGE_FILE_LINE_NUMS_STRIPPED
-optional_header:
-	.short	0x20b				// PE32+ format
-	.byte	0x02				// MajorLinkerVersion
-	.byte	0x14				// MinorLinkerVersion
-	.long	_end - reset			// SizeOfCode
-	.long	0				// SizeOfInitializedData
-	.long	0				// SizeOfUninitializedData
-	.long	efi_stub_entry - _stext	// AddressOfEntryPoint
-	.long	reset - _stext		// BaseOfCode
-
-extra_header_fields:
-	.quad	0				// ImageBase
-	.long	0x20				// SectionAlignment
-	.long	0x8				// FileAlignment
-	.short	0				// MajorOperatingSystemVersion
-	.short	0				// MinorOperatingSystemVersion
-	.short	0				// MajorImageVersion
-	.short	0				// MinorImageVersion
-	.short	0				// MajorSubsystemVersion
-	.short	0				// MinorSubsystemVersion
-	.long	0				// Win32VersionValue
-
-	.long	_end - _stext			// SizeOfImage
-
-	// Everything before the kernel image is considered part of the header
-	.long	reset - _stext		// SizeOfHeaders
-	.long	0				// CheckSum
-	.short	0xa				// Subsystem (EFI application)
-	.short	0				// DllCharacteristics
-	.quad	0				// SizeOfStackReserve
-	.quad	0				// SizeOfStackCommit
-	.quad	0				// SizeOfHeapReserve
-	.quad	0				// SizeOfHeapCommit
-	.long	0				// LoaderFlags
-	.long	0x6				// NumberOfRvaAndSizes
-
-	.quad	0				// ExportTable
-	.quad	0				// ImportTable
-	.quad	0				// ResourceTable
-	.quad	0				// ExceptionTable
-	.quad	0				// CertificationTable
-	.quad	0				// BaseRelocationTable
-
-	// Section table
-section_table:
-
-	/*
-	 * The EFI application loader requires a relocation section
-	 * because EFI applications must be relocatable.  This is a
-	 * dummy section as far as we are concerned.
-	 */
-	.ascii	".reloc"
-	.byte	0
-	.byte	0			// end of 0 padding of section name
-	.long	0
-	.long	0
-	.long	0			// SizeOfRawData
-	.long	0			// PointerToRawData
-	.long	0			// PointerToRelocations
-	.long	0			// PointerToLineNumbers
-	.short	0			// NumberOfRelocations
-	.short	0			// NumberOfLineNumbers
-	.long	0x42100040		// Characteristics (section flags)
-
-
-	.ascii	".text"
-	.byte	0
-	.byte	0
-	.byte	0        		// end of 0 padding of section name
-	.long	_end - reset		// VirtualSize
-	.long	reset - _stext	// VirtualAddress
-	.long	_edata - reset		// SizeOfRawData
-	.long	reset - _stext	// PointerToRawData
-
-	.long	0		// PointerToRelocations (0 for executables)
-	.long	0		// PointerToLineNumbers (0 for executables)
-	.short	0		// NumberOfRelocations  (0 for executables)
-	.short	0		// NumberOfLineNumbers  (0 for executables)
-	.long	0xe0500020	// Characteristics (section flags)
-	.align 5
-
 
 /* Called at boot time. Sets up MMU, exception vectors and stack, and then calls C arch_init() function.
  * => x2 -> DTB
@@ -354,75 +255,6 @@ reset:
 
 	ldr	x7, =_page_dir		/* x7 = (desired) virtual addr of translation table 0x404000 */
 	add	x1, x7, x9		/* x1 = physical addr of translation table 0x40404000 */
-
-
-#if 0
-
-	/* Tell the system where our page table is located. */
-	/* msr	TTBR0_EL1, x1	 set TTBx0 */
-
-	/*
-	 * This is the 16 KB top-level translation table, in which
-	 * each word maps one 1MB virtual section to a physical section.
-	 * Note: We leave TTBCR as 0, meaning that only TTBx0 is used and
-	 * we use the short-descriptor format (32-bit physical addresses).
-	 */
-	mrs x0, TCR_EL1 /* Get EL1 Translation Control */
-
-	/* 64KB, Outer Sharable, Inner/Outer Write-Back Write-Allocate Cacheable  */
-	ldr x18, =EL1_MEM_ATTR_MASK
-	bic x0, x0, x18
-	ldr x18, =EL1_MEM_ATTR_FLAGS
-	orr x0, x0, x18
-	msr TCR_EL1, x0 /* Set EL1 Translation Control */
-
-
-	/* Template (flags) for a 1 MB page-table entry.
-	 * TEX[2:0] C B = 001 1 1 (outer and inner write-back, write-allocate)
-	 */
-	ldr	x8, =(0x2 +  		/* Section entry */ \
-		      0xc +  		/* C B */ \
-		      (3 << 10) + 	/* Read/write */ \
-		      (1 << 12) +	/* TEX */ \
-		      (1 << 16) +	/* Sharable */ \
-		      (1<<19))		/* Non-secure */
-	/* x8 = template page table entry */
-
-	/* Add an entry for the current physical section, at the old and new
-	 * addresses. It's OK if they're the same.
-	 */
-
-	adr	x0, _stext
-
-	lsr	x12, x0, #29
-	and	x12, x12, #((1<<19)-1)	// table index
-	add	x13, x1, #(1 << 16)
-	orr	x13, x13, #(3<<0)	// address of next table and entry type
-	str	x13, [x1, x12, lsl #3]
-	add	x1, x1, #(1 << 16)	// next level table page
-
-	lsr x0, x0, #16
-	orr	x3, x8, x0, lsl #16			/* x3 = table entry for this section */
-	and	x5, x0, #((1<<13)-1)
-	str	x3, [x1, x5, lsl #3]	/* map current section to this code too */
-
-	ldr	x4, =_stext		/* x4 = desired virtual address of this section */
-
-	lsr	x12, x4, #29
-	and	x12, x12, #((1<<19)-1)	// table index
-	add	x13, x1, #(1 << 16)
-	orr	x13, x13, #(3<<0)	// address of next table and entry type
-	str	x13, [x1, x12, lsl #3]
-	add	x1, x1, #(1 << 16)	// next level table page
-
-	lsr x5, x4, #16
-	and	x5, x5, #((1<<13)-1)
-	str	x3, [x1, x5, lsl #3] 	/* map desired virtual section to this code */
-
-	/* Invalidate TLB */
-	dsb sy				/* Caching is off, but must still prevent reordering */
-	tlbi    vmalle1is	/* Invalidate all EL1 TLB entries */
-#endif
 
 	bl	__calc_phys_offset
 	bl	__create_page_tables
@@ -882,49 +714,6 @@ irq_handler:
 .globl IRQ_handler
 IRQ_handler:
 	.long	0x0
-
-
-.globl __arch_switch_threads
-/* => x0 = &prev->sp
- *    x1 = &next->sp
- * <= returns to next thread's saved return address
- */
-__arch_switch_threads:
-	/* Store callee-saved registers to old thread's stack */
-	push    x28, x29
-    push    x26, x27
-    push    x24, x25
-    push    x22, x23
-    push    x20, x21
-    push    x18, x19
-    push    x16, x17
-    push    x14, x15
-    push    x12, x13
-    push    x10, x11
-    push    x8, x9
-    push    x6, x7
-    push    x4, x5
-    mov 	x4, sp
-	stp    	x4, x30, [x0] /* Store current sp and ip to prev's struct thread */
-
-	ldp x4, x30, [x1] 	/* Load new sp, ip from next's struct thread */
-	mov sp, x4
-	/* Load callee-saved registers from new thread's stack */
-    pop     x4, x5
-    pop     x6, x7
-    pop     x8, x9
-    pop     x10, x11
-    pop     x12, x13
-    pop     x14, x15
-    pop     x16, x17
-    pop     x18, x19
-    pop     x20, x21
-    pop     x22, x23
-    pop     x24, x25
-    pop     x26, x27
-    pop     x28, x29
-
-	ret
 
 /* This is called if you try to divide by zero. For now, we make a supervisor call,
  * which will make us halt.
