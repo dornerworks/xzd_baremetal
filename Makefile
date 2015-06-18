@@ -117,22 +117,26 @@ $(OBJ_DIR)/$(TARGET): $(OBJS) $(APP_O) arch_lib
 	$(LD) $(LDFLAGS) $(LDFLAGS_FINAL) $@.o $(EXTRA_OBJS) -o $@
 	$(OBJCOPY) -O binary $@ $@.img
 
-.PHONY: clean arch_clean
+.PHONY: docs
+docs:
+	mkdocs build --clean
+
+.PHONY: clean arch_clean clean-docs
+
+clean-docs:
+	rm -rf site	
 
 arch_clean:
 	$(MAKE) --directory=$(TARGET_ARCH_DIR) OBJ_DIR=$(OBJ_DIR)/$(TARGET_ARCH_DIR) clean || exit 1;
 
-clean:	arch_clean
+clean:	arch_clean clean-docs
 	for dir in $(addprefix $(OBJ_DIR)/,$(SUBDIRS)); do \
 		rm -f $$dir/*.o; \
 	done
-	rm -f include/list.h
-	rm -f ${FDT_SRC} libfdt/libfdt_internal.h
-	rm -f $(OBJ_DIR)/*.o *~ $(OBJ_DIR)/core $(OBJ_DIR)/$(TARGET).elf $(OBJ_DIR)/$(TARGET).raw $(OBJ_DIR)/$(TARGET) $(OBJ_DIR)/$(TARGET).gz
+	rm -f $(OBJ_DIR)/*.o *~ $(OBJ_DIR)/core $(OBJ_DIR)/$(TARGET).elf $(OBJ_DIR)/$(TARGET).raw $(OBJ_DIR)/$(TARGET) $(OBJ_DIR)/$(TARGET).img
 	find . $(OBJ_DIR) -type l | xargs rm -f
 	$(RM) $(OBJ_DIR)/lwip.a $(LWO)
 	rm -f tags TAGS
-
 
 define all_sources
      ( find . -follow -name SCCS -prune -o -name '*.[chS]' -print )

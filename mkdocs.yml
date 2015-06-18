@@ -1,0 +1,10 @@
+site_name: Xen Zynq Distribution
+theme: flatly
+markdown_extensions:
+    - extra
+    - toc
+    - headerid
+    - meta
+    - sane_lists
+    - smarty
+    - wikilinks
