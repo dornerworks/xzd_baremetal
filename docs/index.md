@@ -4,7 +4,7 @@
 The XZD Bare Metal guest provides a container for a bare metal application, so it can be used as a Xen guest on the Xilinx Zynq UltraScale+ MPSoC. The container provides virtual memory mapping, a stack, catching faults, and printing to Xen's console. The bare metal application will be limited to the memory that Xen provides it.
 
 ## Resources
-The source code for the XZD Bare Metal container can be found at: *TBD* 
+The source code for the XZD Bare Metal container can be found at: [https://github.com/dornerworks/xzd_baremetal](https://github.com/dornerworks/xzd_baremetal)
 
 Instructions on downloading, installing, and sourcing the Petalinux toolset can be found in the XZD User Manual at [http://dornerworks.com/wp-content/uploads/2015/04/XilinxXenUsersManual.pdf](http://dornerworks.com/wp-content/uploads/2015/04/XilinxXenUsersManual.pdf).
 
