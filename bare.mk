@@ -1,5 +1,5 @@
 #
-# The file contains the common make rules for building mini-os.
+# The file contains the common make rules for building the bare-metal application.
 #
 
 include $(TOPLEVEL_DIR)/config/Bare.mk
@@ -32,7 +32,7 @@ endif
 # DEF_CFLAGS += -D__INSIDE_MINIOS__
 
 # Build the CFLAGS and ASFLAGS for compiling and assembling.
-# DEF_... flags are the common mini-os flags,
+# DEF_... flags are the common bare metal flags,
 # ARCH_... flags may be defined in arch/$(TARGET_ARCH_FAM/rules.mk
 CFLAGS := $(DEF_CFLAGS) $(ARCH_CFLAGS)
 CPPFLAGS := $(DEF_CPPFLAGS) $(ARCH_CPPFLAGS)

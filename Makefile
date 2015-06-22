@@ -16,7 +16,7 @@ GENERATED_HEADERS := $(ARCH_LINKS) include
 
 EXTRA_DEPS += $(GENERATED_HEADERS)
 
-# Include common mini-os makerules.
+# Include common bare metal makerules.
 include bare.mk
 
 # Set tester flags
@@ -35,8 +35,8 @@ EXTRA_OBJS =
 
 TARGET := xzd_bare
 
-# Subdirectories common to mini-os
-SUBDIRS := lib xenbus console libfdt
+# Subdirectories common to bare metal
+SUBDIRS := 
 FDT_SRC :=
 
 # Need libgcc.a for division helpers
@@ -46,7 +46,7 @@ FDT_SRC :=
 # src-y += main.c
 
 
-# The common mini-os objects to build.
+# The common bare metal objects to build.
 APP_OBJS :=
 OBJS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(src-y))
 
@@ -70,12 +70,6 @@ links: $(GENERATED_HEADERS)
 
 include/xen:
 	ln -sf ../../../xen/include/public $@
-
-include/mini-os:
-	ln -sf . $@
-
-include/$(TARGET_ARCH_FAM)/mini-os:
-	ln -sf . $@
 
 .PHONY: arch_lib
 arch_lib:
