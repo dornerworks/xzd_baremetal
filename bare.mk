@@ -29,7 +29,6 @@ DEF_CFLAGS += -O3 -fno-tree-loop-distribute-patterns
 endif
 
 # Make the headers define our internal stuff
-# DEF_CFLAGS += -D__INSIDE_MINIOS__
 
 # Build the CFLAGS and ASFLAGS for compiling and assembling.
 # DEF_... flags are the common bare metal flags,

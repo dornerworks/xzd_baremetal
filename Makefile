@@ -60,10 +60,6 @@ $(ARCH_LINKS):
 	$(arch_links)
 endif
 
-include/list.h: include/minios-external/bsd-sys-queue-h-seddery include/minios-external/bsd-sys-queue.h
-	perl $^ --prefix=minios  >$@.new
-	$(call move-if-changed,$@.new,$@)
-
 # Used by stubdom's Makefile
 .PHONY: links
 links: $(GENERATED_HEADERS)
@@ -75,28 +71,7 @@ include/xen:
 arch_lib:
 	$(MAKE) --directory=$(TARGET_ARCH_DIR) OBJ_DIR=$(OBJ_DIR)/$(TARGET_ARCH_DIR) || exit 1;
 
-ifeq ($(CONFIG_LWIP),y)
-# lwIP library
-LWC	:= $(sort $(shell find $(LWIPDIR)/src -type f -name '*.c'))
-LWC	:= $(filter-out %6.c %ip6_addr.c %ethernetif.c, $(LWC))
-LWO	:= $(patsubst %.c,%.o,$(LWC))
-LWO	+= $(OBJ_DIR)/lwip-arch.o
-ifeq ($(CONFIG_NETFRONT),y)
-LWO += $(OBJ_DIR)/lwip-net.o
-endif
-
-$(OBJ_DIR)/lwip.a: $(LWO)
-	$(RM) $@
-	$(AR) cqs $@ $^
-
-OBJS += $(OBJ_DIR)/lwip.a
-endif
-
 OBJS := $(filter-out $(OBJ_DIR)/lwip%.o $(LWO), $(OBJS))
-
-ifneq ($(APP_OBJS)-$(lwip),-y)
-OBJS := $(filter-out $(OBJ_DIR)/daytime.o, $(OBJS))
-endif
 
 $(OBJ_DIR)/$(TARGET)_app.o: $(APP_OBJS) app.lds
 	$(LD) -r -d $(LDFLAGS) -\( $^ -\) $(APP_LDLIBS) --undefined main -o $@
