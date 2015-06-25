@@ -1,6 +1,6 @@
 # Xen Zynq Distribution (XZD) Bare Metal Guest How To Guide
 
-Revision: Beta_6_23_2015
+Revision: `Beta_6_23_2015`
 
 ## Introduction
 The XZD Bare Metal guest provides a container for a bare metal application, so it can be used as a Xen guest on the Xilinx Zynq UltraScale+ MPSoC. The container provides virtual memory mapping, a stack, catching faults, and printing to Xen's console. The bare metal application will be limited to the memory that Xen provides it.
@@ -33,7 +33,7 @@ Because of the nature of Xen, the bare metal guest only has access to its memory
 ### Building the Guest Image
 To build the bare metal image, run the following command:
 
-```bash
+```
 $ make CROSS_COMPILE=aarch64-linux-gnu-
 ```
 
@@ -52,7 +52,7 @@ vcpus = 1
 
 Boot up the XZD and in Dom0 start up the bare metal guest with the following command:
 
-```bash
+```
 $ xl create -c /etc/xen/bare.cfg
 ```
 
