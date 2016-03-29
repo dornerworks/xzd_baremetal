@@ -13,7 +13,7 @@ void arch_init(void *dtb_pointer, uint64_t physical_offset)
 	// Get the physical offset for any translations
 	physical_address_offset = physical_offset;
 
-	char buf[1024] = "XZD_Bare: Hello World\n";
+	char buf[1024] = "XZD_Bare: Ethernet, 1.0\n";
 	print(buf);
 
     // Start Bare Metal Application

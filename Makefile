@@ -31,7 +31,7 @@ LDFLAGS_FINAL := -T $(TARGET_ARCH_DIR)/xzd_bare.lds
 # Prefix for global API names. All other symbols are localised before
 # linking with EXTRA_OBJS.
 # GLOBAL_PREFIX := xenos_
-EXTRA_OBJS =
+EXTRA_OBJS = payload.o
 
 TARGET := xzd_bare
 
