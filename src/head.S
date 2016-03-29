@@ -432,21 +432,21 @@ __create_page_tables:
 
 	create_block_map x0, x7, x3, x5, x6
 
-	/*
-	 * Map GEM3
-	 */
-	mov	x0, x25				// idmap_pg_dir
-	ldr x3, =0xFF0E0000
-	create_pgd_entry x0, x3, x5, x6
-	add	x6, X3, #4096 
-	mov	x5, x3				// __pa(KERNEL_START)
-	create_block_map x0, x7, x3, x5, x6
-
     /*
      * Map UART1
      */
 	mov	x0, x25				// idmap_pg_dir
 	ldr x3, =0xFF010000
+	create_pgd_entry x0, x3, x5, x6
+	add	x6, X3, #4096 
+	mov	x5, x3				// __pa(KERNEL_START)
+	create_block_map x0, x7, x3, x5, x6	
+
+	/*
+	 * Map GEM3
+	 */
+	mov	x0, x25				// idmap_pg_dir
+	ldr x3, =0xFF0E0000
 	create_pgd_entry x0, x3, x5, x6
 	add	x6, X3, #4096 
 	mov	x5, x3				// __pa(KERNEL_START)
@@ -459,16 +459,6 @@ __create_page_tables:
 	ldr x3, =0xFF110000
 	create_pgd_entry x0, x3, x5, x6
 	add	x6, X3, #4096 
-	mov	x5, x3				// __pa(KERNEL_START)
-	create_block_map x0, x7, x3, x5, x6
-
-	/*
-     * Map Timestamp generator
-     */
-	mov	x0, x25				// idmap_pg_dir
-	ldr x3, =0xFF250000
-	create_pgd_entry x0, x3, x5, x6
-	add	x6, X3, #131072
 	mov	x5, x3				// __pa(KERNEL_START)
 	create_block_map x0, x7, x3, x5, x6
 
@@ -485,19 +475,19 @@ __create_page_tables:
 	/*
 	 * Map the kernel image (starting with PHYS_OFFSET).
 	 */
-
 	mov	x0, x26				// swapper_pg_dir
 	ldr	x5, =_text
 	create_pgd_entry x0, x5, x3, x6
 	ldr	x6, = _end
 	mov	x3, x24				// phys offset
 	create_block_map x0, x7, x3, x5, x6
-    
+
     /*
-	 * HARDCODED: Map GICD and GICC for Xen Guest
+	 * Map GICD and GICC for Xen Guest
 	 */
     mov	x0, x25				// swapper_pg_dir
- 	ldr	x5, =0x03001000
+	ldr	x5, =0x03001000
+
  	create_pgd_entry x0, x5, x3, x6
  	add	x6, x5, #8192
  	ldr	x3, =0x03001000

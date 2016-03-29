@@ -72,7 +72,6 @@ SECTIONS
   swapper_pg_dir = .;
   . += 8192;
 
-  _end = .;
 
   /* Sections to be discarded */
   /DISCARD/ : {
@@ -91,6 +90,6 @@ SECTIONS
   .comment 0 : { *(.comment) }
   
 
-   .payload_data : {*(.payload_data)}
-   . += 512K;
+  .payload_data : {*(.payload_data)}
+  _end = .;
 }
