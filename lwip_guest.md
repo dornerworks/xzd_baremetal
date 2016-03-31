@@ -19,9 +19,9 @@ This How-To documents porting an application to the XZD Bare Metal container to 
 ## lwIP Echo Server Guest Guide
 
 ### Guest Boot Sequence
-As described in previous Bare Metal How-To's, the sequence for starting up a guest on a Xen-based system goes through _dom0_'s command line via the `xl create <configuration>` command, part of xl toolstack. This command parses the configuration file to generates the necessary hypercalls to Xen which creates the guest's memory space, configures the SMMU, and copies the bare metal image into that memory space using information provided in the image's header.
+As described in previous Bare Metal How-To's, the sequence for starting up a guest on a Xen-based system goes through _dom0_'s command line via the `xl create <configuration>` command, part of xl toolstack. This command parses the configuration file to generate the necessary hypercalls to Xen which creates the guest's memory space, configures the SMMU, and copies the bare metal image into that memory space using information provided in the image's header.
 
-The bare metal guest enters into `src/head.S` and initializes everything the guest needs. This includes mapping register space for the peripheral devices and the interrupt controller (GIC) interfaces to allow the application to use. A 4MB block of RAM is also mapped so the lwIP Echo Server can run at a known virtual address, which for this example was mapped 1:1 with the intermediate physical address at 0x40400000.
+The bare metal guest enters into `src/head.S` and initializes everything the guest needs. This includes mapping peripheral device and interrupt controller (GIC) interfaces so the application can access those memory regions. A 4MB block of RAM is also mapped so the lwIP Echo Server can run at a known virtual address, which for this example was mapped 1:1 with the intermediate physical address at 0x40400000.
 
 Next, the bare metal guest branches to the `arch_init` function in `src/setup.c`. This is the first C code that gets executed. Here the physical offset is saved to a global variable so it can be used for any direct memory writes. Then a message gets printed on Xen's console. This is done using the `console_io` hypercall. This call places a length and a character buffer in the correct registers and then interrupts into Xen. Xen then prints that buffer onto its own console. 
 
@@ -35,7 +35,7 @@ After this, the bare metal guest calls the `main` function in `src/main.c`. Here
 1. Copy `bare_enet.cfg` to the same directory as `xzd_bare.img` on the SD card.
 1. Eject SD card.
 1. Copy `xen.dtb` to your local tftp directory, presumably `/tftpboot`
-1. Boot the ZCU102-Rev A board following user Manual instructions in section 4.2, steps 3 through.
+1. Boot the ZCU102-Rev A board following user Manual instructions in section 4.2, steps 3 through 7. You may need to refer to section 3.5 to enable your TFTP server and obtain the IP address of your host. 
 1. Connect to the second serial connection using terminal program of your choice
 	1. For example, if first serial connection for _dom0_ was found on COM4, then the second serial connection is most likely on COM5.		
 1. Once logged into _dom0_, execute the following:
@@ -81,8 +81,9 @@ iomem = [ "0xff010,1", "0xff0e0,1", "0xff110,1" ]
 The `xzd_bare.img` file is referenced by the `bare_enet.cfg` configuration file. 
 
 ### Building lwip.elf
-These instructions assumes that Xilinx SDK and petalinux have been installed on a Linux host machine.
+These instructions assume that Xilinx SDK 2015.4 and petalinux-2015.4 have been installed on a Linux host machine. 
 
+0. `source /opt/Xilinx/SDK/2015.4/settings64.sh`
 1. Start Xilinx SDK, `$ xsdk`
 2. File -> New -> Application Project (`Alt+Shift+n`)
 	1. `Project name:`, enter `lwip`
@@ -94,7 +95,18 @@ These instructions assumes that Xilinx SDK and petalinux have been installed on 
 	7. `Board Support Package:`, click `Create New` and use default name of `lwip_bsp`
 	8. Click on `Next >`
 3. Select `lwIP Echo Server` and click on `Finish`
-4. Copy files from https://github.com/dornerworks/lwip_update over existing ones in the Xilinx SDK workspace
+4. Copy files from <https://github.com/dornerworks/lwip_updates> over existing ones in the Xilinx SDK workspace:
+	1. lwip/src/lscript.ld
+	2. lwip/src/main.c
+	3. lwip/src/platform_zynqmp.c
+	4. lwip\_bsp/psu\_cortexa53\_0/include/xparameters.h
+	5. lwip\_bsp/psu\_cortexa53\_0/libsrc/emacps\_v3\_1/src/xemacps.c
+	6. lwip\_bsp/psu\_cortexa53\_0/libsrc/lwip141\_v1\_3/src/contrib/ports/xilinx/netif/xemacpsif\_dma.c
+	7. lwip\_bsp/psu\_cortexa53\_0/libsrc/lwip141\_v1\_3/src/contrib/ports/xilinx/netif/xemacpsif\_physpeed.c
+	8.  lwip\_bsp/psu\_cortexa53\_0/libsrc/lwip141\_v1\_3/src/contrib/ports/xilinx/netif/xpqueue.c
+	9.  lwip\_bsp/psu\_cortexa53\_0/libsrc/standalone\_v5\_3/src/boot.S
+	10.  lwip\_bsp/psu\_cortexa53\_0/libsrc/standalone\_v5\_3/src/sleep.c
+	11.  lwip\_bsp/psu\_cortexa53\_0/libsrc/standalone\_v5\_3/src/xil\_cache.c
 5. In Xilinx SDK, `Ctrl+B` to rebuild
 
 ### Building xzd_bare.img
@@ -105,11 +117,10 @@ These instructions assumes that Xilinx SDK and petalinux have been installed on 
 5. `source [your petalinux-2015.4 directory]/settings.sh`
 6. `aarch64-none-elf-objcopy -O binary lwip.elf lwip.bin`
 7. 
-`aarch64-none-elf-objcopy -I binary -O elf64-littleaarch64 -B aarch64 --rename .data=.payload\_data`
-`--redefine-sym \_binary\_lwip\_bin\_start=\_payload\_start`
-`--redefine-sym \_binary\_lwip\_bin\_end=\_payload\_end`
-`--redefine-sym \_binary\_lwip\_bin\_size=\_payload\_size lwip.bin ~/xzd\_baremetal/payload.o`
-
+`aarch64-none-elf-objcopy -I binary -O elf64-littleaarch64 -B aarch64 --rename .data=.payload_data`
+`--redefine-sym _binary_lwip_bin_start=_payload_start`
+`--redefine-sym _binary_lwip_bin_end=_payload_end`
+`--redefine-sym _binary_lwip_bin_size=_payload_size lwip.bin payload.o`
 8. `make CROSS_COMPILE=aarch64-none-elf-`
 
 This generates an `xzd_bare` ELF and a new `xzd_bare.img` binary image, which can be copied  to an SD card for deployment on target.
