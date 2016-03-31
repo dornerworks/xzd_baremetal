@@ -11,7 +11,7 @@ This How-To documents porting an application to the XZD Bare Metal container to 
 - Xilinx petalinux-2015.4 (see <www.xilinx.com>  for more details)
 - XZD Bare Metal container, <https://github.com/dornerworks/xzd_baremetal>
 	- bm_enet branch
-- Updates to the lwIP Echo Server application, <https://github.com/dornerworks/lwip_update>
+- Updates to the lwIP Echo Server application, <https://github.com/dornerworks/lwip_updates>
 - ZCU102 development board,Rev A, with appropriate USB-UART and USB-JTAG cables
 - 8GB SD card
 - Ethernet cable
