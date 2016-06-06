@@ -441,7 +441,7 @@ __create_page_tables:
 	add	x6, X3, #4096 
 	mov	x5, x3				// __pa(KERNEL_START)
 	create_block_map x0, x7, x3, x5, x6	
-
+#if LWIP_TEST
 	/*
 	 * Map GEM3
 	 */
@@ -451,12 +451,37 @@ __create_page_tables:
 	add	x6, X3, #4096 
 	mov	x5, x3				// __pa(KERNEL_START)
 	create_block_map x0, x7, x3, x5, x6
-	
+#endif
+
+#if ENABLE_SLEEP
 	/*
-     * Map TTC1
+     * Map TTC1, so we can call sleep
      */
 	mov	x0, x25				// idmap_pg_dir
 	ldr x3, =0xFF110000
+	create_pgd_entry x0, x3, x5, x6
+	add	x6, X3, #4096 
+	mov	x5, x3				// __pa(KERNEL_START)
+	create_block_map x0, x7, x3, x5, x6
+#endif
+
+#if COMMON_MEM_TEST
+	/*
+     * Map my test code
+     */
+	mov	x0, x25				// idmap_pg_dir
+	ldr x3, =0x70000000
+	create_pgd_entry x0, x3, x5, x6
+	add	x6, X3, #4096 
+	mov	x5, x3				// __pa(KERNEL_START)
+	create_block_map x0, x7, x3, x5, x6
+#endif
+
+	/*
+     * Map GPIO bank
+     */
+	mov	x0, x25				// idmap_pg_dir
+	ldr x3, =0xFF0A0000
 	create_pgd_entry x0, x3, x5, x6
 	add	x6, X3, #4096 
 	mov	x5, x3				// __pa(KERNEL_START)
