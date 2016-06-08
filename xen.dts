@@ -66,7 +66,7 @@
 		#size-cells = <0x1>;
 		ranges;
 
-		gic: interrupt-controller@f9010000 {
+		interrupt-controller@f9010000 {
 			compatible = "arm,gic-400", "arm,cortex-a15-gic";
 			#interrupt-cells = <0x3>;
 			reg = <0x0 0xf9010000 0x10000 0x0 0xf902f000 0x2000 0x0 0xf9040000 0x20000 0x0 0xf906f000 0x2000>;
@@ -295,7 +295,7 @@
 			clocks = <0x2 0x2>;
 		};
 
-		gem0: ethernet@ff0b0000 {
+		ethernet@ff0b0000 {
 			compatible = "cdns,gem";
 			status = "disabled";
 			interrupt-parent = <0x1>;
@@ -309,7 +309,7 @@
 			clocks = <0x3 0x3 0x3>;
 		};
 
-		gem1: ethernet@ff0c0000 {
+		ethernet@ff0c0000 {
 			compatible = "cdns,gem";
 			status = "disabled";
 			interrupt-parent = <0x1>;
@@ -323,7 +323,7 @@
 			clocks = <0x3 0x3 0x3>;
 		};
 
-		gem2: ethernet@ff0d0000 {
+		ethernet@ff0d0000 {
 			compatible = "cdns,gem";
 			status = "disabled";
 			interrupt-parent = <0x1>;
@@ -337,10 +337,9 @@
 			clocks = <0x3 0x3 0x3>;
 		};
 
-		gem3: ethernet@ff0e0000 {
-                        #stream-id-cells = <0x1>;
+		ethernet@ff0e0000 {
 			compatible = "cdns,gem";
-			status = "disabled";
+			status = "okay";
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x3f 0x4 0x0 0x3f 0x4>;
 			reg = <0x0 0xff0e0000 0x1000>;
@@ -354,10 +353,9 @@
 			xlnx,ptp-enet-clock = <0x0>;
 			local-mac-address = [00 0a 35 00 22 01];
 			phy-handle = <0x4>;
-                        xen,passthrough = <1>;
 
-			phy@21 {
-				reg = <0x15>;
+			phy@0x0c {
+				reg = <0x0c>;
 				ti,rx-internal-delay = <0x8>;
 				ti,tx-internal-delay = <0xa>;
 				ti,fifo-depth = <0x1>;
@@ -366,18 +364,17 @@
 			};
 		};
 
-		gpio@ff0a0000 {
-			compatible = "xlnx,zynqmp-gpio-1.0";
-			status = "okay";
-			#gpio-cells = <0x2>;
-			interrupt-parent = <0x1>;
-			interrupts = <0x0 0x10 0x4>;
-			reg = <0x0 0xff0a0000 0x1000>;
-			clocks = <0x2>;
-			emio-gpio-width = <0x20>;
-			gpio-mask-high = <0x0>;
-			gpio-mask-low = <0x5600>;
-		};
+		gpio: gpio@ff0a0000 {
+            #stream-id-cells = <0x1>;
+            compatible = "xlnx,zynq-gpio-1.0";
+            status = "disabled";
+            #gpio-cells = <0x2>;
+            clocks = <0x2>;
+            interrupt-parent = <0x1>;
+            interrupts = <0x0 0x10 0x4>;
+            reg = <0x0 0xff0a0000 0x1000>;
+            xen,passthrough = <1>;
+        };
 
 		i2c@ff020000 {
 			compatible = "cdns,i2c-r1p10";
@@ -868,6 +865,8 @@
 			#global-interrupts = <0x1>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4 0x0 0x9d 0x4>;
+
+			mmu-masters = <&ser1 0x876 &gpio 0x877>;
 		};
 
 		spi@ff040000 {
@@ -894,15 +893,13 @@
 			clocks = <0x7 0x7>;
 		};
 
-		ttc1: timer@ff110000 {
-                        #stream-id-cells = <0x1>;
+		timer@ff110000 {
 			compatible = "cdns,ttc";
 			status = "disabled";
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x24 0x4 0x0 0x25 0x4 0x0 0x26 0x4>;
 			reg = <0x0 0xff110000 0x1000>;
 			timer-width = <0x20>;
-                        xen,passthrough = <1>;
 		};
 
 		timer@ff120000 {
@@ -944,9 +941,9 @@
 			device_type = "serial";
 			port-number = <0x0>;
 		};
-/*
+
 		ser1: serial@ff010000 {
-                        #stream-id-cells = <0x1>;
+			#stream-id-cells = <0x1>;
 			compatible = "cdns,uart-r1p8";
 			status = "disabled";
 			interrupt-parent = <0x1>;
@@ -954,23 +951,11 @@
 			reg = <0x0 0xff010000 0x1000>;
 			clock-names = "uart_clk", "pclk";
 			clocks = <0x2 0x2>;
-			//current-speed = <0x1c200>;
-			//device_type = "serial";
-			//port-number = <0x1>;
-                        xen,passthrough = <1>;
+			current-speed = <0x1c200>;
+			device_type = "serial";
+			port-number = <0x1>;
+			xen,passthrough = <1>;
 		};
-*/
-        ser1: serial@ff010000 {
-            #stream-id-cells = <0x1>;
-            compatible = "cdns,uart-r1p8";
-            status = "disabled";
-            interrupt-parent = <0x1>;
-            interrupts = <0x0 0x16 0x4>;
-            reg = <0x0 0xff010000 0x1000>;
-            clock-names = "uart_clk", "pclk";
-            clocks = <0x2 0x2>;
-            xen,passthrough = <1>;
-        };
 
 		usb@fe200000 {
 			compatible = "snps,dwc3";
@@ -995,19 +980,6 @@
 			clocks = <0x6 0x6>;
 		};
 
-		smmu0: smmu0@0xFD800000 {
-      		compatible = "arm,mmu-500";
-      		reg = <0x0 0xfd800000 0x20000>;
-      		#global-interrupts = <1>;
-      		interrupt-parent = <&gic>;
-      		interrupts = <0 157 4>,
-            	<0 157 4>, <0 157 4>, <0 157 4>, <0 157 4>,
-            	<0 157 4>, <0 157 4>, <0 157 4>, <0 157 4>,
-            	<0 157 4>, <0 157 4>, <0 157 4>, <0 157 4>,
-            	<0 157 4>, <0 157 4>, <0 157 4>, <0 157 4>;
-
-      		mmu-masters = <&gem3 0x874 &ser1 0x875 &ttc1 0x87>;
-    	};
 		watchdog@fd4d0000 {
 			compatible = "cdns,wdt-r1p2";
 			status = "okay";
