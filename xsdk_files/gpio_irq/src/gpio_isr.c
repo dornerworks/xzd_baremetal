@@ -85,8 +85,6 @@
 #define INPUT_SHIFT			(1<<INPUT_PIN)
 #define OUTPUT_SHIFT		(1<<OUTPUT_PIN)
 
-#define TEST_END_COUNT		(9u)
-
 #define printf			xil_printf	/* Smalller foot-print printf */
 
 /**************************** Type Definitions *******************************/
@@ -112,6 +110,8 @@ static XScuGic Intc; /* The Instance of the Interrupt Controller Driver */
 
 volatile unsigned int press_count=0;
 
+unsigned long long int tsc_count=0;
+
 /****************************************************************************/
 /**
 *
@@ -133,6 +133,8 @@ int main(void)
 	init_platform();
 
 	xil_printf("GPIO Interrupt Latency Test Dornerworks\r\n");
+	asm volatile("mrs %0, cntpct_el0" : "=r" (tsc_count));
+	xil_printf("Initial TSC_COUNT %llu\n", tsc_count);
 
 	/*
 	 * Run the GPIO interrupt example, specify the parameters that
@@ -222,17 +224,15 @@ int GpioIntrExample(XScuGic *Intc, XGpioPs *Gpio, u16 DeviceId, u16 GpioIntrId)
 	 * level processing.
 	 */
 	xil_printf("Main Loop\n");
+
 	count = press_count;
 	while(1)
 	{
 		if(press_count != count)
 		{
 			xil_printf("Press %d\n", press_count);
+			xil_printf("TSC_COUNT %llu\n", tsc_count);
 			count = press_count;
-			if(press_count >= TEST_END_COUNT)
-			{
-				break;
-			}
 		}
 	}
 

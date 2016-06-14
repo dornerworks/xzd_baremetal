@@ -67,6 +67,7 @@ typedef struct {
 /************************** Variable Definitions *****************************/
 
 extern XExc_VectorTableEntry XExc_VectorTable[];
+extern unsigned long long int tsc_count;
 
 /************************** Function Prototypes ******************************/
 
@@ -106,6 +107,8 @@ void FIQInterrupt(void)
 ******************************************************************************/
 void IRQInterrupt(void)
 {
+	asm volatile("mrs %0, cntpct_el0" : "=r" (tsc_count));
+
 	XExc_VectorTable[XIL_EXCEPTION_ID_IRQ_INT].Handler(XExc_VectorTable[
 					XIL_EXCEPTION_ID_IRQ_INT].Data);
 }
