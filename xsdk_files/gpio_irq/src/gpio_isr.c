@@ -111,6 +111,8 @@ static XScuGic Intc; /* The Instance of the Interrupt Controller Driver */
 volatile unsigned int press_count=0;
 
 unsigned long long int tsc_count=0;
+unsigned long long int tsc_led_count_start=0;
+unsigned long long int tsc_led_count_end=0;
 
 /****************************************************************************/
 /**
@@ -231,7 +233,7 @@ int GpioIntrExample(XScuGic *Intc, XGpioPs *Gpio, u16 DeviceId, u16 GpioIntrId)
 		if(press_count != count)
 		{
 			xil_printf("Press %d\n", press_count);
-			xil_printf("TSC_COUNT %llu\n", tsc_count);
+			xil_printf("irq_start %llu led_start %llu led_end %llu\n", tsc_count, tsc_led_count_start, tsc_led_count_end);
 			count = press_count;
 		}
 	}
@@ -259,6 +261,7 @@ static void IntrHandler(void *CallBackRef, u32 Bank, u32 Status)
 {
 	XGpioPs *Gpio = (XGpioPs *)CallBackRef;
 
+	asm volatile("mrs %0, cntpct_el0" : "=r" (tsc_led_count_start));
 	if(press_count % 2)
 	{
 		/* Set the LED. */
@@ -269,6 +272,7 @@ static void IntrHandler(void *CallBackRef, u32 Bank, u32 Status)
 		/* Clear the LED. */
 		XGpioPs_WritePin(Gpio, OUTPUT_PIN, 0);
 	}
+	asm volatile("mrs %0, cntpct_el0" : "=r" (tsc_led_count_end));
 
 	press_count++;
 }
