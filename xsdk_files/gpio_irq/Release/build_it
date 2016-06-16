@@ -1,4 +1,0 @@
-aarch64-none-elf-objcopy -O binary $1 app.bin
-aarch64-none-elf-objcopy -I binary -O elf64-littleaarch64 -B aarch64 --rename .data=.payload_data --redefine-sym _binary_app_bin_start=_payload_start --redefine-sym _binary_app_bin_end=_payload_end --redefine-sym _binary_app_bin_size=_payload_size app.bin ~/xzd_baremetal/payload.o
-cp $1 ~/xzd_baremetal/app.elf
-
