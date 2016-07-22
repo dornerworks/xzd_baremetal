@@ -1,6 +1,9 @@
 /* Offset of the kernel within the RAM. This is a Linux/zImage convention which we
  * rely on for now.
  */
+#define XSTR(x) STR(x)
+#define STR(x) #x
+
 
 #include <page.h>
 
@@ -248,13 +251,13 @@ reset:
 	 * 4. remap all the other pages with the calculated offset
 	 */
 
-	adr	x1, _stext		/* x1 = physical address of _stext 0x40408000 */
-	ldr	x3, =_stext		/* x3 = (desired) virtual address of _stext 0x408000 */
-	sub 	x9, x1, x3		/* x9 = (physical - virtual) offset 0x40000000 */
+	adr	x1, _stext		/* x1 = physical address of _stext 0x40080000 */
+	ldr	x3, =_stext		/* x3 = (desired) virtual address of _stext 0xffffffc000080000 */
+	sub 	x9, x1, x3		/* x9 = (physical - virtual) offset 0x4040000000 */
 	mov x28, x9
 
-	ldr	x7, =_page_dir		/* x7 = (desired) virtual addr of translation table 0x404000 */
-	add	x1, x7, x9		/* x1 = physical addr of translation table 0x40404000 */
+	ldr	x7, =_page_dir		/* x7 = (desired) virtual addr of translation table 0xffffffc000040000 */
+	add	x1, x7, x9		/* x1 = physical addr of translation table 0x400400000 */
 
 	bl	__calc_phys_offset
 	bl	__create_page_tables
@@ -286,13 +289,18 @@ reset:
  * Corrupts:	tmp1, tmp2
  * Returns:	tbl -> next level table page address
  */
+
+
 	.macro	create_table_entry, tbl, virt, shift, ptrs, tmp1, tmp2
 	lsr	\tmp1, \virt, #\shift
 	and	\tmp1, \tmp1, #\ptrs - 1	// table index
-	add	\tmp2, \tbl, #PAGE_SIZE
+	
+	add	\tmp2, \tbl, #PAGE_SIZE	
 	orr	\tmp2, \tmp2, #PMD_TYPE_TABLE	// address of next table and entry type
+	
 	str	\tmp2, [\tbl, \tmp1, lsl #3]
 	add	\tbl, \tbl, #PAGE_SIZE		// next level table page
+	
 	.endm
 
 /*
@@ -429,18 +437,50 @@ __create_page_tables:
 	create_pgd_entry x0, x3, x5, x6
 	adr	x6, _end
 	mov	x5, x3				// __pa(KERNEL_START)
+
+	create_block_map x0, x7, x3, x5, x6
+
+    /*
+     * Map UART1
+     */
+	mov	x0, x25				// idmap_pg_dir
+	ldr x3, =0xFF010000
+	create_pgd_entry x0, x3, x5, x6
+	ldr x6, =0xFF01ffff		// map 4KB
+	mov	x5, x3				// __pa(KERNEL_START)
+	create_block_map x0, x7, x3, x5, x6	
+
+    /*
+     * Map 4MB 1:1 at 0x40400000
+     */
+	mov x0, x25                         // idmap_pg_dir
+	ldr x3, =0x40400000
+	create_pgd_entry x0, x3, x5, x6
+	ldr x6, =0x407fffff					// map 4MB
+	mov x5, x3    
+	create_block_map x0, x7, x3, x5, x6
+    
+    /*
+     * Map Shared memory region
+     */
+	mov x0, x25                         // idmap_pg_dir
+	ldr x3, =0x7ffff000
+	create_pgd_entry x0, x3, x5, x6
+	ldr x6, =0x7fffffff					// map 4KB
+	mov x5, x3    
 	create_block_map x0, x7, x3, x5, x6
 
 	/*
 	 * Map the kernel image (starting with PHYS_OFFSET).
 	 */
-
 	mov	x0, x26				// swapper_pg_dir
 	ldr	x5, =_text
 	create_pgd_entry x0, x5, x3, x6
-	ldr	x6, =_end
+	ldr	x6, = _end
 	mov	x3, x24				// phys offset
 	create_block_map x0, x7, x3, x5, x6
+
+
 
 	/*
 	 * Since the page tables have been populated with non-cacheable
