@@ -1,60 +1,173 @@
 # Xen Zynq Distribution (XZD) Bare Metal Guest How To Guide
 
-Revision: `Beta_6_23_2015`
+Revision: `XZD_20160930`
 
 ## Introduction
-The XZD Bare Metal guest provides a container for a bare metal application, so it can be used as a Xen guest on the Xilinx Zynq UltraScale+ MPSoC. The container provides virtual memory mapping, a stack, catching faults, and printing to Xen's console. The bare metal application will be limited to the memory that Xen provides it.
+In order to simplify the process of porting a "standalone" application, one that runs bare metal without an operating system, the team at DornerWorks has developed the XZD Bare Metal project. The project provides a an the environment, or container, for bare metal applications developed using other tool flows, such as Xilinx's(tm) SDK (XSDK). This container allows that payload application to run as a guest under Xen on the Xilinx Zynq UltraScale+ MPSoC. The container provides virtual memory mapping, stack, fault handling, and an API to print to Xen's console. After setting up the environment, the XZD Bare Metal container loads the payload application into virtual memory and the passes control to it.
 
 ## Resources
 The source code for the XZD Bare Metal container can be found at: [https://github.com/dornerworks/xzd_baremetal](https://github.com/dornerworks/xzd_baremetal)
+
+The example Xilinx(tm) SDK code can ve found at: [https://githumb.com/dornerworks/baremetal_XSDK](https://github.com/dornerworks/baremetal_XSDK)
 
 Instructions on downloading, installing, and sourcing the Petalinux toolset can be found in the XZD User Manual at [http://dornerworks.com/wp-content/uploads/2015/04/XilinxXenUsersManual.pdf](http://dornerworks.com/wp-content/uploads/2015/04/XilinxXenUsersManual.pdf).
 
 ## Bare Metal Guide
 
 ### Bare Metal Bootup
-Dom0 starts up the bare metal guest using the xl toolstack. Xen then gives the guest memory space and copies the bare metal image to that memory space, using information provided in the image header. At that point, Xen starts execution at Exception Level 1 at the copied in kernel start address.
+Dom0 starts up the bare metal guest using the xl toolstack. As part of initializing the guest, Xen allocates the configured amount of memory for it, and then copies the bare metal image to that memory space, using information provided in the image header. At that point, Xen starts execution at Exception Level 1 at offset into the newly allocated memory space indicated by the image header.
 
-The bare metal guest enters into `src/head.S` and initializes everything the guest needs. 
+The bare metal guest enters into `src/head.S` and initializes everything the guest needs. Currently this includes setting up a direct guest physical address(GPA) to virtual address (VA)  mapping of UART1 (1 page at 0xFF010000) as well as 1 page of potentially shared memory at 0x7FFFF000. This file should be modified to add additional MMU mappings if other memory regions are shared or I/O devices are passed through to the guest. This file should also be modified, along with `src/main.c` if the 4MB limit needs to be changed or a different application execution space is desired.
 
-Next, the bare metal guest branches to the `arch_init` function in `src/setup.c`. This is the first C code that gets executed. Here the physical offset is saved to a globabl variable so it can be used for any direct memory writes. Then a hello world message gets printed on Xen's console. This is done using the `console_io` hypercall. This call places a length and a character buffer in the correct registers and then interrupts into Xen. Xen then prints that buffer onto its own console. 
+Next, the bare metal container branches to the `arch_init` function in `src/setup.c`. This is the first C code that gets executed. Here the physical offset is saved to a global variable so it can be used for any direct memory writes. Then a message gets printed on Xen's console to indicate the bare metal guest has booted to a point where it is about to transfer control to the payload application. This is done using the `console_io` hypercall. This call places a length and a character buffer in the correct registers and then interrupts into Xen. Xen then prints that buffer onto its own console. 
 
-After this, the bare metal guest calls the `main` function in `src/main.c`. Here the bare metal guest sits in an infinite loop because there is nothing else of interest for the container to do. 
+After this, the bare metal container calls the `main` function in `src/main.c`. Here the bare metal guest loads the 4MB of the payload application to memory at 0x40400000 and then passes control to the payload application. This is where the location and size of the payload application can be changed as long as it remains consistent with `src/head.S` and the application's link map.
 
 ### Adding a Bare Metal Application to the Container
-Code can be modified in the `src/setup.c` and `src/main.c` and the application should begin at the `main` function. Any new C file can be added to the `src` directory and the Makefile will include it in the build without modifying any Makefiles or config files. The `include` directory is the only include directory, so that is where header files should be placed. 
+The bare metal container is designed to accept a payload application in the form of an ELF file, such as a standalone application generated by XSDK. The ELF file is converted to its binary equivalent and built with the bare metal container, to create a resulting binary image that can be run from Dom0's command line by using the `./build_it` utility included in the repository.
 
-Because of the nature of Xen, the bare metal guest only has access to its memory and nothing else. There are a couple of options to get access to a device: 
+Alternately code can be modified in the `src/setup.c` and/or `src/main.c` to include the functionality directly. Application should begin at the `main` function. Any new C file can be added to the `src` directory and the Makefile will include it in the build without modifying any Makefiles or config files. The `include` directory is the only include directory, so that is where header files should be placed. 
 
-**Direct Passthrough** - This gives a guest direct and exclusive access to a device. Information on device passthrough can be found in the XZD User Manual.
+Because of the nature of Xen, the bare metal guest only has access to what it is assigned to in the configuration file that is used to create the guest. There are a couple of options to get access to a device: 
+
+**Direct Passthrough** - This gives a guest direct and exclusive access to a device. Information on device passthrough can be found in the XZD User Manual. The examples provided in this guide includes passthough of UART1 to the guest.
 
 **Paravirtualized Devices** - Dom0 provides a front-end for some devices. To talk to these, a back-end needs to be implemented in the bare metal. This requires support for the XenStore, event channels, shared memory, and all of the related Hypercalls. Instead of implementing all of these, it may be easier to use MiniOS as a container for the bare metal application instead. It takes up more space, but it has all of these PV drivers implemented.  
 
 ### Building the Guest Image
-To build the bare metal image, run the following command:
+To build the bare metal image, run the following command targeting the payload application ELF file:
 
 ```
-$ make CROSS_COMPILE=aarch64-linux-gnu-
+$ ./build_it $PATH_TO_PAYLOAD_APP/$PAYLOAD_APP.elf
 ```
 
-This generates an `xzd_bare` ELF file and an `xzd_bare.img` binary image. The binary image is the file that will be used as the `kernel` for the Xen guest. The ELF file can be used for debugging the bare metal guest. 
+Example: Using XZD Bare Metal with a simple standaloen application built using XSDK:
+
+1. Create a `Hello World` application in XSDK targetting the ZCU102 platform called $PROJECT\_NAME in the $XSDK\_WORKSPACE.
+2. Download the files from https://github.com/dornerowrks/baremetal_XSDK, overwriting the local versions created by XSDK:
+	1. ```git clone https://github.com/dornerworks/baremetal_XSDK $XSDK_REPO```
+	2. ```cp $XSDK_REPO/app/* $XSDK_WORKSPACE/$PROJECT_NAME/src/```
+	3. ```cp -r $XSDK_REPO/bsp/* $XSDK\_WORKSPACE/$PROJECT_NAME_bsp/```
+3. Clean and rebuild the XSDK project.
+4. Download the bare metal project and run `build_it`:
+	1. ```git clone https://github.com/dornerworks/xzd_baremetal $XZD_REPO```
+	2. ```cd $XZD_REPO```
+	3. ```./build_it $XZDK_WORKSPACE/$PROJECT_NAME/Debug/$PROJECT_NAME.elf```
+
+This generates an `xzd_bare` ELF file and an `xzd_bare.img` binary image. The binary image is the file that will be used as the `kernel` for the Xen guest. The ELF file can be used for debugging the bare metal container portion and $PROJECT_NAME.elf can be used to debug the payload application. 
 
 ### Installing and Booting the Guest Image in the XZD
-Install the `xzd_bare.img` kernel as described in the XZD user manual. Then create a configuration file for the bare metal guest.
+Install the `xzd_bare.img` kernel as described in the XZD user manual, typically by adding to the file system image or by tftp'ing the image using Dom0's command line. Then create a configuration file for the bare metal guest.
 
-Example Configuration File (/etc/xen/bare.cfg):
-```
-name = "bare"
-kernel = "/root/xzd_bare.img"
-memory = 128
-vcpus = 1
-```
+Example Configuration File (/etc/xen/bare.cfg), which passes UART1 through to the guest:
+
+	name = "bare"
+	kernel = "/root/xzd_bare.img"
+	memory = 8
+	vcpus = 1
+	iomem = ["0xff010,1"]
 
 Boot up the XZD and in Dom0 start up the bare metal guest with the following command:
 
-```
-$ xl create -c /etc/xen/bare.cfg
-```
+```xl create /etc/xen/bare.cfg```
+
+#### XSDK Example
+For the XSDK example, additional steps are needed to carve out a region of RAM to share with guest in the devce tree. One way to do this is to add a UIO device node to the end of the AMBA node definition, define the UIO device string in Dom0's bootargs, and to adjust the memory node at the end of the dts file.
+	
+Add shared memory node:
+
+	 			compatible = "mmio-sram";
+	  			reg = <0x0 0xfffc0000 0x0 0x40000>;
+	  		};
+	 +
+	 +		shared_mem {
+	 +			#stream-id-cells = <0x1>;
+	 +			compatible = "uio-dev";
+	 +			reg = <0x0 0x7ffff000 0x0 0x1000>; 
+	 +		};
+	 +
+	  	};
+	  
+	  	aliases {
+
+Update Dom0 booatargs:
+
+			#address-cells = <0x2>;
+	  		#size-cells = <0x1>;
+	  		xen,xen-bootargs = "console=dtuart dtuart=serial0 dom0_mem=512M bootscrub=0 dom0_vcpus_pin maxcpus=3 timer_slop=0";
+	 -		xen,dom0-bootargs = "console=hvc0 earlycon=xen earlyprintk=xen root=/dev/mmcblk0p1 rootdelay=1 devtmpfs.mount=1 dom0_max_vcpus=1 maxcpus=1";
+	 +		xen,dom0-bootargs = "console=hvc0 earlycon=xen earlyprintk=xen root=/dev/mmcblk0p1 rootdelay=1 devtmpfs.mount=1 dom0_max_vcpus=1 maxcpus=1 uio_pdrv_genirq.of_id=uio-dev";
+	  
+	  		dom0 {
+	  			compatible = "xen,linux-zimage", "xen,multiboot-module";
+
+ Update memory node:
+
+	  	memory {
+	  		device_type = "memory";
+	 -		reg = <0x0 0x0 0x0 0x80000000 0x8 0x0 0x0 0x80000000>;
+	 +		reg = <0x0 0x0 0x0 0x7ffff000 0x8 0x0 0x0 0x80000000>;
+	  	};
+	  };
+
+
+To recompile the dts to dtb:
+
+`dtc -I dts -O dtb -o xen.dtb xen-zcu102.dts`
+
+The resulting xen.dtb should be added to the SD card or tftpboot/ directory depending on method of booting the target.
+
+To run multiple guests, the guest name needs to be unique. Furthermore, it is possible to pin guests to specific CPU cores with the `cpu` attribute:
+
+bm0.cfg:
+
+	name = "bm0"
+	kernel = "bm.img"
+	memory = 8
+	vcpus = 1
+	cpus = [0]
+	iomem = [ "0x7ffff,1", "0xff010,1"]
+
+
+bm1.cfg:
+
+	name = "bm1"
+	kernel = "bm.img"
+	memory = 8
+	vcpus = 1
+	cpus = [1]
+	iomem = [ "0x7ffff,1", "0xff010,1"]
+
+
+bm2.cfg:
+
+	name = "bm2"
+	kernel = "bm.img"
+	memory = 8
+	vcpus = 1
+	cpus = [2]
+	iomem = [ "0x7ffff,1", "0xff010,1"]
+
+
+bm3.cfg:
+
+	name = "bm3"
+	kernel = "bm.img"
+	memory = 8
+	vcpus = 1
+	cpus = [3]
+	iomem = [ "0x7ffff,1", "0xff010,1"]
+
+All four guests can be brought up from Dom0's command line:
+
+	xl create dom0.cfg 
+	xl create dom1.cfg 
+	xl create dom2.cfg
+	xl create dom3.cfg
+
+
+Examples of these configuration files can be found at https://github.com/dornerworks/baremetal_XSDK/config, or $XSDK_REPO/config if the repo was previously cloned.
+
 
 ## Troubleshooting
-For more help, visit [http://dornerworks.com/services/xilinxxen](http://dornerworks.com/services/xilinxxen)
+For more help, visit [http://dornerworks.com/services/xilinxxen](http://xen.world) or [http://xzdforums.dornerworks.com/](http://xzdforums.dornerworks.com/).
