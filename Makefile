@@ -31,7 +31,7 @@ LDFLAGS_FINAL := -T $(TARGET_ARCH_DIR)/xzd_bare.lds
 # Prefix for global API names. All other symbols are localised before
 # linking with EXTRA_OBJS.
 # GLOBAL_PREFIX := xenos_
-EXTRA_OBJS = payload.o
+EXTRA_OBJS = 
 
 TARGET := xzd_bare
 
@@ -49,6 +49,7 @@ FDT_SRC :=
 # The common bare metal objects to build.
 APP_OBJS :=
 OBJS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(src-y))
+PAYLOAD_O := $(OBJ_DIR)/payload.o
 
 .PHONY: default
 default: $(OBJ_DIR)/$(TARGET)
@@ -80,10 +81,23 @@ ifneq ($(APP_OBJS),)
 APP_O=$(OBJ_DIR)/$(TARGET)_app.o 
 endif
 
-$(OBJ_DIR)/$(TARGET): $(OBJS) $(APP_O) arch_lib
+$(OBJ_DIR)/app.bin:
+	@if [ -e $(OBJ_DIR)/app.bin ]; then \
+		echo "!! app.bin exists !!" ; \
+	else \
+		echo "!! Creating dummy app.bin !!"; \
+		echo -n -e \\x00\\x00\\x00\\x14 > app.bin; \
+	fi;
+
+$(OBJ_DIR)/payload.o: $(OBJ_DIR)/app.bin
+	aarch64-none-elf-objcopy -I binary -O elf64-littleaarch64 -B aarch64 --rename .data=.payload_data --redefine-sym _binary_app_bin_start=_payload_start --redefine-sym _binary_app_bin_end=_payload_end --redefine-sym _binary_app_bin_size=_payload_size app.bin payload.o
+
+
+$(OBJ_DIR)/$(TARGET): $(OBJS) $(APP_O) $(PAYLOAD_O) arch_lib
 	$(LD) -r $(LDFLAGS) $(HEAD_OBJ) $(APP_O) $(OBJS) $(LDARCHLIB) $(LDLIBS) -o $@.o
 	$(OBJCOPY) -w -G _text $@.o $@.o
-	$(LD) $(LDFLAGS) $(LDFLAGS_FINAL) $@.o $(EXTRA_OBJS) -o $@
+
+	$(LD) $(LDFLAGS) $(LDFLAGS_FINAL) $@.o $(PAYLOAD_O) $(EXTRA_OBJS) -o $@
 	$(OBJCOPY) -O binary $@ $@.img
 
 .PHONY: docs
@@ -106,6 +120,7 @@ clean:	arch_clean clean-docs
 	find . $(OBJ_DIR) -type l | xargs rm -f
 	$(RM) $(OBJ_DIR)/lwip.a $(LWO)
 	rm -f tags TAGS
+	rm -f $(OBJ_DIR)/app.bin
 
 define all_sources
      ( find . -follow -name SCCS -prune -o -name '*.[chS]' -print )
