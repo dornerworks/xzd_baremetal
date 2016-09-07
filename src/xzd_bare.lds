@@ -6,11 +6,10 @@ SECTIONS
    * at start-of-RAM + 0x8000. We use this initial 32 KB for the stack
    * and translation tables.
    */
-   _boot_stack   = 0xffffffc000000000;  /* 16 KB boot stack */
+  _boot_stack   = 0xffffffc000000000;     /* 16 KB boot stack */
   _boot_stack_end = 0xffffffc000040000;
-  _page_dir      = 0xffffffc000040000;  /* 16 KB translation table */
-  /* .		 = 0x408000; */
-  .    = 0xffffffc000080000;
+  .    = 0xffffffc000080000; 
+
   _text = .;			/* Text and read-only data */
   .text : {
   _stext = .;   /* Text and read-only data  */
@@ -66,12 +65,6 @@ SECTIONS
         *(.app.bss)
 	}
 
-  . = ALIGN(4096);
-  idmap_pg_dir = .;
-  . += 8192;
-  swapper_pg_dir = .;
-  . += 8192;
-
 
   /* Sections to be discarded */
   /DISCARD/ : {
@@ -79,6 +72,29 @@ SECTIONS
 	*(.data.exit)
 	*(.exitcall.exit)
 	}
+
+
+  .    = 0xffffffc000090000; 
+  .func_base : {*(.bmc_func)}
+  .payload_data : {*(.payload_data)}  
+
+  _end = .;
+
+  .    = 0xffffffc000200000; 
+  . = ALIGN(4096);
+  /*
+  idmap_pg_dir = .;
+  . += 2*4096;
+  swapper_pg_dir = .;
+  . += 2*4096;
+  */
+  init_page_table = .;
+  . += 4*4096;
+  init_page_table_end = .;
+  
+   _page_tables = .;
+  .page_tables : {*(.page_tables)}  
+  
 
   /* Stabs debugging sections.  */
   .stab 0 : { *(.stab) }
@@ -88,8 +104,6 @@ SECTIONS
   .stab.index 0 : { *(.stab.index) }
   .stab.indexstr 0 : { *(.stab.indexstr) }
   .comment 0 : { *(.comment) }
-  
 
-  .payload_data : {*(.payload_data)}
-  _end = .;
+
 }
