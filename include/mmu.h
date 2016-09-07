@@ -16,31 +16,19 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING 
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef __MMU_H__
+#define __MMU_H__
+#include <types.h>
 
-#ifndef __ASSEMBLY__
+#define OK				0
+#define VA_INVALID		-1
+#define SIZE_BAD		-2
+#define ENTRY_IS_BLOCK	-3
+#define ENTRY_IN_USE	-4
+#define OUT_OF_TABLES	-5
 
-typedef char int8_t;
-typedef unsigned char uint8_t;
 
-typedef short int16_t;
-typedef unsigned short uint16_t;
-
-typedef int int32_t;
-typedef unsigned int uint32_t;
-
-typedef long int64_t;
-typedef unsigned long uint64_t;
-
-typedef unsigned long size_t;
-
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long u64;
-
-#define NULL ((void*)0)
-#endif
+void walk_table(u64 base, int level);
+int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size);
 
 #endif

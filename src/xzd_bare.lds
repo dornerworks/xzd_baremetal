@@ -82,12 +82,6 @@ SECTIONS
 
   .    = 0xffffffc000200000; 
   . = ALIGN(4096);
-  /*
-  idmap_pg_dir = .;
-  . += 2*4096;
-  swapper_pg_dir = .;
-  . += 2*4096;
-  */
   init_page_table = .;
   . += 4*4096;
   init_page_table_end = .;
