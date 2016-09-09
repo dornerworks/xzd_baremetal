@@ -63,6 +63,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define	DEVICE_MEM	0
 #define	NORMAL_UNCACHED	1
 #define	NORMAL_MEM	2
+
 #define ATTR_AF 	(1<<10)
 
 #define PAGE_SHIFT						12
@@ -179,9 +180,9 @@ create_pagetables:
 
 
 
-	// Map ??
+	// Allow direct, physical addressing of BMC functions
 	mov	x6, x27						// L2 table
-	mov x7, #NORMAL_UNCACHED		// 0x2
+	mov x7, #NORMAL_UNCACHED		// 0x1
 	adr x8, _boot_stack				// VA
 	mov x9, x8						// PA = VA
 	mov x10, x4

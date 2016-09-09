@@ -27,8 +27,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ENTRY_IN_USE	-4
 #define OUT_OF_TABLES	-5
 
+#define	DEVICE_MEM	0
+#define	NORMAL_UNCACHED	1
+#define	NORMAL_MEM	2
 
 void walk_table(u64 base, int level);
-int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size);
+int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size, int type);
 
 #endif

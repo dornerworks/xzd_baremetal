@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /* these values are based on what's in head.S */ 
-#define BLOCK_ATTR	(0x708 | VALID_ENTRY)
+#define BLOCK_ATTR	(0x700 | VALID_ENTRY)
 #define NUM_STARTING_TABLES	4
 #define NUM_TABLES	(512-NUM_STARTING_TABLES)
 
@@ -126,7 +126,7 @@ static int add_table(u64* entry)
 /*
 * Maps a single 1GB, 2MB, or 4KB block of memory.
 */
-static int map_memory_block(u64 phys_addr, u64 virt_addr, u32 size)
+static int map_memory_block(u64 phys_addr, u64 virt_addr, u32 size, int type)
 {
 	u64* table;
 	u64  entry;
@@ -175,7 +175,7 @@ static int map_memory_block(u64 phys_addr, u64 virt_addr, u32 size)
 			{
 				entry = phys_addr & (-(1<<shift));
 				entry &= LOWER_MASK;
-				entry |= BLOCK_ATTR;
+				entry |= BLOCK_ATTR | (type <<2);
 
 				if(size == L3_SIZE)
 				{
@@ -207,7 +207,7 @@ static int map_memory_block(u64 phys_addr, u64 virt_addr, u32 size)
 * Function to map a VA to a given PA. Any size can be given, but any "leftovers" will mapped via a 4KB page, so the rest of that 4KB region
 * will also be mapped.
 */
-int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size)
+int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size, int type)
 {
 	int num_blocks[3];
 	u32 block_size;
@@ -216,12 +216,14 @@ int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size)
 	int rv;
 	int i, j;
 
+#ifdef DEBUG
 	print_u64((u64)phys_addr_ptr);
 	print("  ");
 	print_u64((u64)virt_addr_ptr);
 	print("  ");
 	print_u32(size);
 	print("\r\n");
+#endif
 
 	block_size = L1_SIZE;
 	j = 0;
@@ -242,7 +244,7 @@ int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size)
 	{		
 		for(i = 0; i < num_blocks[j]; i++)
 		{
-			if((rv = map_memory_block( phys_addr+i*block_size, virt_addr+i*block_size, block_size )))
+			if((rv = map_memory_block( phys_addr+i*block_size, virt_addr+i*block_size, block_size, type)))
 			{
 				return rv;
 			}
