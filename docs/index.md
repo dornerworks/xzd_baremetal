@@ -10,7 +10,7 @@ The source code for the XZD Bare Metal container can be found at: [https://githu
 
 The example Xilinx(tm) SDK code can be found at: [https://github.com/dornerworks/baremetal_XSDK](https://github.com/dornerworks/baremetal_XSDK)
 
-Instructions on downloading, installing, and sourcing the Petalinux toolset can be found in the XZD User Manual at [http://dornerworks.com/wp-content/uploads/2015/04/XilinxXenUsersManual.pdf](http://dornerworks.com/wp-content/uploads/2015/04/XilinxXenUsersManual.pdf).
+Instructions on downloading, installing, and sourcing the Petalinux toolset can be found in the XZD User Manual at [http://dornerworks.com/wp-content/uploads/2016/07/XilinxXenUsersManual.pdf](http://dornerworks.com/wp-content/uploads/2016/07/XilinxXenUsersManual.pdf).
 
 ## Bare Metal Guide
 
@@ -72,7 +72,7 @@ Boot up the XZD and in Dom0 start up the bare metal guest with the following com
 ```xl create /etc/xen/bare.cfg```
 
 #### XSDK Example
-For the XSDK example, additional steps are needed to carve out a region of RAM to share with guest in the devce tree. One way to do this is to add a UIO device node to the end of the AMBA node definition, define the UIO device string in Dom0's bootargs, and to adjust the memory node at the end of the dts file.
+For the XSDK example, additional steps are needed to carve out a region of RAM to share with guests in the device tree. One way to do this is to add a UIO device node to the end of the AMBA node definition, define the UIO device string in Dom0's bootargs, and adjust the memory node at the end of the dts file.
 	
 Add shared memory node to the DTS file appropriate for your target (e.g., xen-qemu.dts or xen-zcu102.dts):
 
