@@ -5,7 +5,13 @@ This project provides a means to take an arbitrary application that:
 - Is in an ELF file format
 - Runs at EL1 or EL0
 - Uses less than 4MB of memory 
-and transform it into a Xen guest.
+- Is linked to, or can otherwise run at, address 0x40400000
+
+and make it so it can run as a Xen guest. Note that the XZD Bare Metal Container (BMC) does some minimal memory mapping to, notably the 4MB starting at 0x40400000, but if the guest is to use passed through peripherals or other memory regions than those addresses must be:
+
+1. Mapped by Xen, allowing the guest IPA to map to the real PA.
+1. Mapped by the guest, allowing the application to access a VA that maps to the IPA (that maps to the PA).
+
 
 Simply run `build_it` targetting the ELF file you want to run as a Xen guest. 
 
