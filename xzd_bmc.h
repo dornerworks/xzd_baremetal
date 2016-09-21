@@ -23,10 +23,13 @@ the built-in BMC functions functions below.
 #ifndef __XZD_BMC_H__
 #define __XZD_BMC_H__
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
 #define MAJOR_VER     2
 #define MINOR_VER     1
 #define PATCH_VER     0
-#define VERSION "v##MAJOR_VER.##MINOR_VER.##PATCH_VER";
+#define VERSION 	"v" STR(MAJOR_VER) "." STR(MINOR_VER) "." STR(PATCH_VER)
 
 
 typedef int (*func0)(void* phys_addr_ptr, void* virt_addr_ptr, u32 size, int type);
