@@ -20,7 +20,15 @@ See [https://github.com/dornerworks/xzd_baremetal/blob/master/docs/index.md ](ht
 
 ## Releases ##
 
-**v2.0.0.0**
+**v2.1.0**
+
+- Added new BMC function to return the version of the BMC.
+- Added "xzd_bmc.h" header file for use by payload applicaions.
+  - Defines `bmc_mem_mapper`, `bmc_xen_print`, and `bmc_get_version` (can be accessed as functions).
+  - Describes the BMC function signatures. 
+  - Provides an inline function to check that the version of the header file is compatible with the actual BMC used, `check_compat()`.
+
+**v2.0.0**
  
 - BMC helper functions
   - map_memory : Add VA to IPA entries to the MMU table

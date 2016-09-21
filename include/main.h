@@ -20,5 +20,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __MAIN_H__
 
 int main(void);
+char* get_version(int* ver);
 
 #endif

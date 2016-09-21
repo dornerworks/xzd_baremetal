@@ -20,6 +20,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <console.h>
 #include <main.h>
 
+
 uint64_t physical_address_offset = 0;
 
 /*
@@ -30,9 +31,9 @@ void arch_init(void *dtb_pointer, uint64_t physical_offset)
 	// Get the physical offset for any translations
 	physical_address_offset = physical_offset;
 
-	char buf[1024] = "XZD Bare Metal Container, v2.0.0\r\n";
-	print(buf);
-
+	print("XZD Bare Metal Container, ");
+	print(get_version(NULL));
+	print("\r\n");
     // Start Bare Metal Application
     main();
 }
