@@ -41,7 +41,7 @@ typedef char* (*func2)(int* ver);
 #define bmc_xen_print	((func1)(FUNC_BASE[1]))
 #define bmc_get_version	((func2)(FUNC_BASE[2]))
 
-inline int check_compat(void)
+static inline int check_compat(void)
 {
 	int ver[3];
 	bmc_get_version(ver);
