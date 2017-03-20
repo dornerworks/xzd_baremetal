@@ -26,10 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ENTRY_IS_BLOCK	-3
 #define ENTRY_IN_USE	-4
 #define OUT_OF_TABLES	-5
+#define INVALID_MEM_TYPE	-6	
 
-#define	DEVICE_MEM	0
-#define	NORMAL_UNCACHED	1
-#define	NORMAL_MEM	2
+#define	DEVICE_MEM				0
+#define	NORMAL_UNCACHED			1
+#define	NORMAL_MEM_INNER_SHARE	2
+#define NORMAL_MEM_OUTER_SHARE	3
+#define NUM_MEM_TYPES			4
+
 
 void walk_table(u64 base, int level);
 int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size, int type);

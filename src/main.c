@@ -60,7 +60,7 @@ int main(void)
     u64* dest_ptr = (void*)START_ADDR;
     u64* end_ptr = (void*)&_payload_end;
 
-    if( (rv = map_memory((void*)0x40400000,(void*)0x40400000, MAX_PAYLOAD_SIZE, NORMAL_MEM) ))
+    if( (rv = map_memory((void*)0x40400000,(void*)0x40400000, MAX_PAYLOAD_SIZE, NORMAL_MEM_INNER_SHARE) ))
         print_error("RAM",rv);
 
     func_base[0] = map_memory ;             // register memory mapping function so payload can invoke it
