@@ -36,8 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UPPER_MASK	(-(1<<12))
 
 
-/* these values are based on what's in head.S */ 
-#define BLOCK_ATTR	(0x700 | VALID_ENTRY)
 #define NUM_STARTING_TABLES	4
 #define NUM_TABLES	(512-NUM_STARTING_TABLES)
 
@@ -50,11 +48,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define dsb(scope)      asm volatile("dsb " #scope : : : "memory")
 #define mb()  dsb(sy)
 
+
+#define BLOCK_ATTR	(0x400 | VALID_ENTRY)
+#define get_mem_attrib_index(t)	(memory_type_to_attrib[t] << 2)								// range checked on entry to public interface
+#define get_shareability(t) (t==NORMAL_MEM_OUTER_SHARE?0x200:0x300)
+
+#define get_attrib(t)	(BLOCK_ATTR | get_shareability(t)  | (get_mem_attrib_index(t)))		// calculate the block attributes based on type
+
+static int memory_type_to_attrib[NUM_MEM_TYPES] = {0,1,2,2};								// maps a type to a memory attribute set
+
+
 /* structures for managing dynamic paging */
 typedef struct page { u64 entry[512]; } page_table_t;
 //page_table_t page_tables[NUM_TABLES] __attribute__ ((section (".page_tables")));
 page_table_t* page_tables = (void*)(0x40200000+NUM_STARTING_TABLES*4096);
 static u8 table_index = 0;
+
+
 
 void walk_table(u64 base, int level)
 {
@@ -175,7 +185,7 @@ static int map_memory_block(u64 phys_addr, u64 virt_addr, u32 size, int type)
 			{
 				entry = phys_addr & (-(1<<shift));
 				entry &= LOWER_MASK;
-				entry |= BLOCK_ATTR | (type <<2);
+				entry |= get_attrib(type);
 
 				if(size == L3_SIZE)
 				{
@@ -224,6 +234,11 @@ int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size, int type)
 	print_u32(size);
 	print("\r\n");
 #endif
+
+	if(type >= NUM_MEM_TYPES)
+	{
+		return INVALID_MEM_TYPE;
+	}
 
 	block_size = L1_SIZE;
 	j = 0;
