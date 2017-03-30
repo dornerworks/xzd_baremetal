@@ -75,7 +75,7 @@ void walk_table(u64 base, int level)
 		print("\t");
 
 	print("base: ");
-	print_u64(base);
+	print_u64(base); 
 	print("\r\n");
 
 	table = (u64*)base;
@@ -191,7 +191,6 @@ static int map_memory_block(u64 phys_addr, u64 virt_addr, u32 size, int type)
 				{
 					entry |= TYPE_TABLE;	// have to set the table bit for level-3 entries
 				}
-				
 				table[index]= entry;	
 				// done adding a block
 				break;
@@ -217,14 +216,22 @@ static int map_memory_block(u64 phys_addr, u64 virt_addr, u32 size, int type)
 * Function to map a VA to a given PA. Any size can be given, but any "leftovers" will mapped via a 4KB page, so the rest of that 4KB region
 * will also be mapped.
 */
+#define NUM_JOBS 5
 int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size, int type)
 {
-	int num_blocks[3];
+	struct 
+	{
+		int num_blocks;
+		u32 block_size;		
+	} jobs[] = {{0,L3_SIZE},{0,L2_SIZE},{0,L1_SIZE},{0,L2_SIZE},{0,L3_SIZE},{0,0}};	// 4KB, 2MB, 1GB, 2MB, 4KB
+
 	u32 block_size;
 	u64 phys_addr;
 	u64 virt_addr;
 	int rv;
 	int i, j;
+	u64 max_addr;
+	u64 curr_addr;
 
 #ifdef DEBUG
 	print_u64((u64)phys_addr_ptr);
@@ -239,33 +246,55 @@ int map_memory(void* phys_addr_ptr, void* virt_addr_ptr, u32 size, int type)
 	{
 		return INVALID_MEM_TYPE;
 	}
-
-	block_size = L1_SIZE;
-	j = 0;
-	while(block_size >= L3_SIZE)
-	{		
-		num_blocks[j] = size / block_size;
-		size %= block_size;
-		block_size >>= LEVEL_SHIFT;
-		j++;
-	}
-
+	
 	phys_addr = (u64)phys_addr_ptr;
 	virt_addr = (u64)virt_addr_ptr;
 
-	block_size = L1_SIZE;	
-	j = 0;
-	while(block_size >= L3_SIZE)
-	{		
-		for(i = 0; i < num_blocks[j]; i++)
+	max_addr = phys_addr + size;
+	curr_addr = phys_addr & (-L3_SIZE);	//round down to the nearest page
+
+	for(i = 0; i < NUM_JOBS && curr_addr < max_addr; i++)
+	{
+		if(jobs[i].block_size < jobs[i+1].block_size)
 		{
-			if((rv = map_memory_block( phys_addr+i*block_size, virt_addr+i*block_size, block_size, type)))
+			// check to see if need to handle padding up to next larger block size
+			u64 next_addr = (curr_addr & (-jobs[i+1].block_size)) + jobs[i+1].block_size;
+			next_addr = next_addr > max_addr ? max_addr: next_addr;
+			if((next_addr-curr_addr)%jobs[i+1].block_size) // need to pad to get to next larger size
+				jobs[i].num_blocks = (next_addr - curr_addr) / jobs[i].block_size; //when handling left overs, the math handles it
+			//else num_blocks left at 0
+		}
+		else 
+		{
+			// do as many blocks as can at the current block size
+			jobs[i].num_blocks = (max_addr - curr_addr) / jobs[i].block_size; 
+		}
+		
+
+		curr_addr += jobs[i].num_blocks * jobs[i].block_size;	
+	}
+
+
+	for(j = 0; j < NUM_JOBS; j++)
+	{	
+#ifdef DEBUG
+	print_u16(j);
+	print("-");
+	print_u32(jobs[j].num_blocks);
+	print(", ");
+	print_u32(jobs[j].block_size);
+	print("\n");
+#endif 
+		block_size = jobs[j].block_size;
+		for(i = 0; i < jobs[j].num_blocks; i++)
+		{
+			if((rv = map_memory_block( phys_addr, virt_addr, block_size, type)))
 			{
 				return rv;
 			}
+			phys_addr += block_size;
+			virt_addr += block_size;
 		}
-		block_size >>= LEVEL_SHIFT;		// 1GB, 2MB, 4KB
-		j++;
 	}
 
 	return OK;
