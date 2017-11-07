@@ -1,5 +1,5 @@
 /*
-Copyright DornerWorks 2016
+Copyright DornerWorks 2017
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
 following conditions are met:
@@ -27,7 +27,7 @@ the built-in BMC functions functions below.
 #define STR(x) STR_HELPER(x)
 
 #define MAJOR_VER     2
-#define MINOR_VER     1
+#define MINOR_VER     2
 #define PATCH_VER     0
 #define VERSION 	"v" STR(MAJOR_VER) "." STR(MINOR_VER) "." STR(PATCH_VER)
 
@@ -40,6 +40,12 @@ typedef char* (*func2)(int* ver);
 #define bmc_mem_mapper	((func0)(FUNC_BASE[0]))
 #define bmc_xen_print	((func1)(FUNC_BASE[1]))
 #define bmc_get_version	((func2)(FUNC_BASE[2]))
+
+// values to use for bmc_mem_mapper "type"
+#define	DEVICE_MEM		0
+#define	NORMAL_UNCACHED		1
+#define	NORMAL_MEM_INNER_SHARE	2
+#define NORMAL_MEM_OUTER_SHARE	3
 
 static inline int check_compat(void)
 {
